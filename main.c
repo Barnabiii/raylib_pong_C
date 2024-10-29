@@ -10,8 +10,10 @@ const int SCREEN_WIDTH = 1000;
 const int SCREEN_HEIGHT = 600;
 const int SCREEN_BORDERS = 20;
 const int PLAYER_SPEED = 300;
-const int PLAYER_WIDTH = 10;
+const int PLAYER_WIDTH = 20;
 const int PLAYER_HEIGHT = 100;
+
+int virtual_width = SCREEN_WIDTH-2*SCREEN_BORDERS;
 
 float deltaTime;
 
@@ -30,6 +32,12 @@ struct Player
     int down_key;
 };
 
+float clamp(float a,float min, float max) {
+    a = a < min ? min : a;
+    a = a > max ? max : a;
+    return a;
+}
+
 void define_body(struct Body *pBody,int posX,int posY,int width,int height) {
     pBody->posX = (float)posX;
     pBody->posY = (float)posY;
@@ -37,25 +45,29 @@ void define_body(struct Body *pBody,int posX,int posY,int width,int height) {
     pBody->height = height;
 }
 
-void define_player(struct Player *pPlayer,int up_key,int down_key) {
-    define_body(&pPlayer->body,SCREEN_BORDERS,250,PLAYER_WIDTH,PLAYER_HEIGHT);
+void define_player(struct Player *pPlayer,int init_x,int up_key,int down_key) {
+    define_body(&pPlayer->body,init_x,250,PLAYER_WIDTH,PLAYER_HEIGHT);
     pPlayer->up_key = up_key;
     pPlayer->down_key = down_key;
 }
 
-void init_players(struct Player *pPlayer1,struct Player *pPlayer2) {
-    int player2_startX = SCREEN_WIDTH - (SCREEN_BORDERS+PLAYER_WIDTH);   
-    define_player(pPlayer1,W,S);
-    define_player(pPlayer2,UP_ARROW,DOWN_ARROW);
+void init_players(struct Player *pPlayer1,struct Player *pPlayer2) {  
+    define_player(pPlayer1,0,W,S);
+    define_player(pPlayer2,virtual_width-PLAYER_WIDTH,UP_ARROW,DOWN_ARROW);
 }
 
 void move_player(struct Player *pPlayer) {
     short dir = IsKeyDown(pPlayer->down_key) - IsKeyDown(pPlayer->up_key);
-    pPlayer->body.posY += dir * PLAYER_SPEED * deltaTime;
+
+    float y = pPlayer->body.posY;
+    y += dir * PLAYER_SPEED * deltaTime;
+    pPlayer->body.posY = clamp(y,0,SCREEN_HEIGHT-PLAYER_HEIGHT);
 }
 
 void draw_body(struct Body *pBody) {
-    DrawRectangle((int)pBody->posX,(int)pBody->posY,pBody->width,pBody->height,WHITE);
+    int x = (int)pBody->posX + SCREEN_BORDERS;
+    int y = (int)pBody->posY; 
+    DrawRectangle(x,y,pBody->width,pBody->height,WHITE);
 }
 
 void draw(struct Player *pPlayer1,struct Player *pPlayer2) {
