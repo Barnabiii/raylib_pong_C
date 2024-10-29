@@ -8,7 +8,7 @@
 
 const int SCREEN_WIDTH = 1000;
 const int SCREEN_HEIGHT = 600;
-const int SCREEN_BORDERS = 20;
+const int SCREEN_BORDERS = 100;
 
 const int PLAYER_SPEED = 300;
 const int PLAYER_WIDTH = 20;
@@ -24,7 +24,8 @@ struct Body
     float posX;
     float posY;
     int width;
-    int height;    
+    int height;
+    Color color;    
 };
 
 struct Ball
@@ -47,11 +48,20 @@ float clamp(float a,float min, float max) {
     return a;
 }
 
+int getCollisionMag(int pos1, int size1,int pos2,int size2) {
+    int col1 = (pos1 + size1) - pos2;
+    int col2 = pos1 - (pos2 + size2);
+    int collision_on_axis = col1 * col2;
+
+    return -collision_on_axis;
+}
+
 void define_body(struct Body *pBody,int posX,int posY,int width,int height) {
     pBody->posX = (float)posX;
     pBody->posY = (float)posY;
     pBody->width = width;
     pBody->height = height;
+    pBody->color = WHITE;
 }
 
 void define_player(struct Player *pPlayer,int init_x,int up_key,int down_key) {
@@ -60,17 +70,35 @@ void define_player(struct Player *pPlayer,int init_x,int up_key,int down_key) {
     pPlayer->down_key = down_key;
 }
 
-void move_ball(struct Ball *pBall) {
+void move_ball(struct Ball *pBall,struct Player *pPlayer1,struct Player *pPlayer2) {
     float x = pBall->body.posX;
     float y = pBall->body.posY;
     x += pBall->velX * BALL_SPEED * deltaTime;
     y += pBall->velY * BALL_SPEED * deltaTime;
 
-    pBall->velX = clamp(x,0,SCREEN_WIDTH-BALL_SIZE) != x ? -pBall->velX : pBall->velX;
-    pBall->velY = clamp(y,0,SCREEN_HEIGHT-BALL_SIZE) != y ? -pBall->velY : pBall->velY;
+    float clamped_x = clamp(x,0,SCREEN_WIDTH-BALL_SIZE);
+    float clamped_y = clamp(y,0,SCREEN_HEIGHT-BALL_SIZE);
 
-    pBall->body.posX = x;
-    pBall->body.posY = y;
+    pBall->velX = clamped_x != x ? -pBall->velX : pBall->velX;
+    pBall->velY = clamped_y != y ? -pBall->velY : pBall->velY;
+
+    int xCol1 = getCollisionMag( (int) clamped_x , BALL_SIZE  ,  (int) pPlayer1->body.posX , PLAYER_WIDTH );
+    int xCol2 = getCollisionMag( (int) clamped_x , BALL_SIZE  ,  (int) pPlayer2->body.posX , PLAYER_WIDTH );
+    int yCol1 = getCollisionMag( (int) clamped_y , BALL_SIZE  ,  (int) pPlayer1->body.posY , PLAYER_HEIGHT);
+    int yCol2 = getCollisionMag( (int) clamped_y , BALL_SIZE  ,  (int) pPlayer2->body.posY , PLAYER_HEIGHT);
+
+    if((xCol1 >= 0 && yCol1 >= 0)) {
+        if(xCol1 <= yCol1) {pBall->velX *= -1;} 
+        if(xCol1 >= yCol1) {pBall->velY *= -1;}
+    }
+
+    if((xCol2 >= 0 && yCol2 >= 0)) {
+        if(xCol2 <= yCol2) {pBall->velX *= -1;} 
+        if(xCol2 >= yCol2) {pBall->velY *= -1;}
+    }
+
+    pBall->body.posX = clamped_x;
+    pBall->body.posY = clamped_y;
 }
 
 void move_player(struct Player *pPlayer) {
@@ -82,7 +110,7 @@ void move_player(struct Player *pPlayer) {
 }
 
 void draw_body(struct Body *pBody) {
-    DrawRectangle(pBody->posX,pBody->posY,pBody->width,pBody->height,WHITE);
+    DrawRectangle(pBody->posX,pBody->posY,pBody->width,pBody->height,pBody->color);
 }
 
 void draw(struct Player *pPlayer1,struct Player *pPlayer2,struct Ball *pBall) {
@@ -98,7 +126,8 @@ void draw(struct Player *pPlayer1,struct Player *pPlayer2,struct Ball *pBall) {
 }
 
 void process_game(struct Player *pPlayer1,struct Player *pPlayer2,struct Ball *pBall) {
-    while (!WindowShouldClose()) {  // Detect window close button or ESC key
+    int gameLost = 0;
+    while (!WindowShouldClose() || !gameLost) {  // Detect window close button or ESC key
         deltaTime = GetFrameTime();
         // int k = GetKeyPressed();
         // if(k != 0) {
@@ -107,7 +136,8 @@ void process_game(struct Player *pPlayer1,struct Player *pPlayer2,struct Ball *p
 
         move_player(pPlayer1);
         move_player(pPlayer2);
-        move_ball(pBall);
+        move_ball(pBall,pPlayer1,pPlayer2);
+
         draw(pPlayer1,pPlayer2,pBall);
     }
 }
