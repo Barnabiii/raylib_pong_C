@@ -9,9 +9,13 @@
 const int SCREEN_WIDTH = 1000;
 const int SCREEN_HEIGHT = 600;
 const int SCREEN_BORDERS = 20;
+
 const int PLAYER_SPEED = 300;
 const int PLAYER_WIDTH = 20;
 const int PLAYER_HEIGHT = 100;
+
+const int BALL_SPEED = 300;
+const int BALL_SIZE = 20;
 
 int virtual_width = SCREEN_WIDTH-2*SCREEN_BORDERS;
 
@@ -23,6 +27,13 @@ struct Body
     float posY;
     int width;
     int height;    
+};
+
+struct Ball
+{
+    struct Body body;
+    float velX;
+    float velY;
 };
 
 struct Player
@@ -51,9 +62,9 @@ void define_player(struct Player *pPlayer,int init_x,int up_key,int down_key) {
     pPlayer->down_key = down_key;
 }
 
-void init_players(struct Player *pPlayer1,struct Player *pPlayer2) {  
-    define_player(pPlayer1,0,W,S);
-    define_player(pPlayer2,virtual_width-PLAYER_WIDTH,UP_ARROW,DOWN_ARROW);
+void move_ball(struct Ball *pBall) {
+    pBall->body.posX += pBall->velX * BALL_SPEED * deltaTime;
+    pBall->body.posY += pBall->velY * BALL_SPEED * deltaTime;
 }
 
 void move_player(struct Player *pPlayer) {
@@ -70,18 +81,19 @@ void draw_body(struct Body *pBody) {
     DrawRectangle(x,y,pBody->width,pBody->height,WHITE);
 }
 
-void draw(struct Player *pPlayer1,struct Player *pPlayer2) {
+void draw(struct Player *pPlayer1,struct Player *pPlayer2,struct Ball *pBall) {
     BeginDrawing();
 
     ClearBackground(BLACK);  
 
     draw_body(&pPlayer1->body);
     draw_body(&pPlayer2->body);
+    draw_body(&pBall->body);
 
     EndDrawing();
 }
 
-void process_game(struct Player *pPlayer1,struct Player *pPlayer2) {
+void process_game(struct Player *pPlayer1,struct Player *pPlayer2,struct Ball *pBall) {
     while (!WindowShouldClose()) {  // Detect window close button or ESC key
         deltaTime = GetFrameTime();
         // int k = GetKeyPressed();
@@ -91,7 +103,8 @@ void process_game(struct Player *pPlayer1,struct Player *pPlayer2) {
 
         move_player(pPlayer1);
         move_player(pPlayer2);
-        draw(pPlayer1,pPlayer2);
+        move_ball(pBall);
+        draw(pPlayer1,pPlayer2,pBall);
     }
 }
 
@@ -101,8 +114,15 @@ int main(int argc, char** argv) {
     SetTargetFPS(200);
 
     struct Player player1,player2;
-    init_players(&player1,&player2);
-    process_game(&player1,&player2);
+    define_player(&player1,0,W,S);
+    define_player(&player2,virtual_width-PLAYER_WIDTH,UP_ARROW,DOWN_ARROW);
+
+    struct Ball ball;
+    define_body(&ball.body,490,290,BALL_SIZE,BALL_SIZE);
+    ball.velX = 0.5;
+    ball.velY = 1;
+
+    process_game(&player1,&player2,&ball);
 
     CloseWindow();
     return 0;
