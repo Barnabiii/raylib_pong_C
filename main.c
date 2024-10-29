@@ -14,10 +14,8 @@ const int PLAYER_SPEED = 300;
 const int PLAYER_WIDTH = 20;
 const int PLAYER_HEIGHT = 100;
 
-const int BALL_SPEED = 300;
+const int BALL_SPEED = 400;
 const int BALL_SIZE = 20;
-
-int virtual_width = SCREEN_WIDTH-2*SCREEN_BORDERS;
 
 float deltaTime;
 
@@ -63,8 +61,16 @@ void define_player(struct Player *pPlayer,int init_x,int up_key,int down_key) {
 }
 
 void move_ball(struct Ball *pBall) {
-    pBall->body.posX += pBall->velX * BALL_SPEED * deltaTime;
-    pBall->body.posY += pBall->velY * BALL_SPEED * deltaTime;
+    float x = pBall->body.posX;
+    float y = pBall->body.posY;
+    x += pBall->velX * BALL_SPEED * deltaTime;
+    y += pBall->velY * BALL_SPEED * deltaTime;
+
+    pBall->velX = clamp(x,0,SCREEN_WIDTH-BALL_SIZE) != x ? -pBall->velX : pBall->velX;
+    pBall->velY = clamp(y,0,SCREEN_HEIGHT-BALL_SIZE) != y ? -pBall->velY : pBall->velY;
+
+    pBall->body.posX = x;
+    pBall->body.posY = y;
 }
 
 void move_player(struct Player *pPlayer) {
@@ -76,9 +82,7 @@ void move_player(struct Player *pPlayer) {
 }
 
 void draw_body(struct Body *pBody) {
-    int x = (int)pBody->posX + SCREEN_BORDERS;
-    int y = (int)pBody->posY; 
-    DrawRectangle(x,y,pBody->width,pBody->height,WHITE);
+    DrawRectangle(pBody->posX,pBody->posY,pBody->width,pBody->height,WHITE);
 }
 
 void draw(struct Player *pPlayer1,struct Player *pPlayer2,struct Ball *pBall) {
@@ -114,13 +118,13 @@ int main(int argc, char** argv) {
     SetTargetFPS(200);
 
     struct Player player1,player2;
-    define_player(&player1,0,W,S);
-    define_player(&player2,virtual_width-PLAYER_WIDTH,UP_ARROW,DOWN_ARROW);
+    define_player(&player1,SCREEN_BORDERS,W,S);
+    define_player(&player2,SCREEN_WIDTH-PLAYER_WIDTH-SCREEN_BORDERS,UP_ARROW,DOWN_ARROW);
 
     struct Ball ball;
     define_body(&ball.body,490,290,BALL_SIZE,BALL_SIZE);
-    ball.velX = 0.5;
-    ball.velY = 1;
+    ball.velX = 1;
+    ball.velY = 0.5;
 
     process_game(&player1,&player2,&ball);
 
